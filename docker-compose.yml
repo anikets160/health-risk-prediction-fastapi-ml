@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  api:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./model:/app/model
+      - ./data:/app/data
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api

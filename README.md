@@ -10,8 +10,9 @@ A production-ready FastAPI web service for predicting diabetes risk based on pat
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Running the Application](#running-the-application)
+- [Running Backend & Frontend](#running-backend--frontend)
 - [API Documentation](#api-documentation)
+- [Frontend UI](#frontend-ui)
 - [Testing](#testing)
 - [Docker Deployment](#docker-deployment)
 - [Project Workflow](#project-workflow)
@@ -35,12 +36,14 @@ The API predicts whether a patient has diabetes (binary classification) based on
 
 - ✅ **FastAPI REST API** - Modern, async Python web framework with automatic OpenAPI/Swagger documentation
 - ✅ **Scikit-learn Pipeline** - Production-grade ML model with preprocessing (StandardScaler) and classification (Logistic Regression)
+- ✅ **React Frontend** - Beautiful, responsive UI for entering patient data and viewing predictions
 - ✅ **Input Validation** - Pydantic models enforce type safety and boundary constraints on all inputs
 - ✅ **Comprehensive Testing** - pytest integration for API and business logic testing
 - ✅ **Docker Support** - Containerized deployment with included Dockerfile
 - ✅ **Error Handling** - Graceful HTTP error responses with meaningful messages
 - ✅ **Model Persistence** - joblib serialization for model saving/loading
 - ✅ **Health Checks** - Built-in `/health` endpoint for monitoring
+- ✅ **Interactive UI** - Real-time form validation, visual results, medical recommendations
 
 ## Project Structure
 
@@ -66,6 +69,19 @@ health-risk-prediction-fastapi-ml/
 │   ├── train.py                           # Model training script
 │   └── evaluate.py                        # Model evaluation and metrics
 │
+├── frontend/                               # React frontend UI
+│   ├── public/
+│   │   └── index.html                     # HTML root file
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Header.js                  # Application header
+│   │   │   ├── PredictionForm.js          # Patient data input form
+│   │   │   └── ResultCard.js              # Results display component
+│   │   ├── App.js                         # Main React component
+│   │   └── index.js                       # React DOM entry point
+│   ├── package.json                       # Dependencies and scripts
+│   └── README.md                          # Frontend documentation
+│
 ├── data/
 │   └── diabetes.csv                       # Training dataset (Pima Indians Diabetes)
 │
@@ -79,7 +95,9 @@ health-risk-prediction-fastapi-ml/
 ├── Dockerfile                             # Docker container configuration
 ├── .gitignore                             # Git ignore patterns
 ├── LICENSE                                # MIT License
-└── README.md                              # This file
+├── README.md                              # This file
+├── FRONTEND_SETUP.md                      # Frontend setup guide
+└── .git/                                  # Git repository
 ```
 
 ## Prerequisites
@@ -237,6 +255,97 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 The API will be available at `http://localhost:8000`
+
+## Running Backend & Frontend
+
+Once the model is trained, you can run the complete application with both backend and frontend:
+
+### Option 1: Using Two Terminal Windows (Recommended for Development)
+
+**Terminal 1 - Start FastAPI Backend:**
+```bash
+uvicorn app.main:app --reload
+```
+Output: `Uvicorn running on http://127.0.0.1:8000`
+
+**Terminal 2 - Start React Frontend:**
+```bash
+cd frontend
+npm install  # Only needed on first run
+npm start
+```
+Output: `Compiled successfully! You can now view health-risk-prediction in the browser.`
+
+The React app opens automatically at `http://localhost:3000`
+
+### Option 2: Using One Terminal with Concurrently (Advanced)
+
+Install `concurrently`:
+```bash
+npm install --save-dev concurrently
+```
+
+Add to `frontend/package.json` scripts:
+```json
+"start-all": "concurrently \"uvicorn app.main:app --reload\" \"npm --prefix ./frontend start\""
+```
+
+Then run both servers:
+```bash
+npm run start-all
+```
+
+### Using the Application
+
+1. **Open the UI** - Navigate to `http://localhost:3000`
+2. **Enter Patient Data** - Fill in the 8 health metrics:
+   - Pregnancies
+   - Glucose
+   - Blood Pressure
+   - Skin Thickness
+   - Insulin
+   - BMI
+   - Diabetes Pedigree Function
+   - Age
+3. **Get Prediction** - Click the "Get Prediction" button
+4. **View Results** - See risk classification (HIGH RISK / LOW RISK) with:
+   - Prediction probability percentage
+   - Visual progress bar
+   - Tailored medical recommendations
+   - Health tips
+
+### Frontend Features
+
+- ✅ **Real-time Form Validation** - All inputs validated with min/max bounds
+- ✅ **Interactive Icons** - Visual icons for each health metric
+- ✅ **Loading States** - Disabled form during API request
+- ✅ **Error Handling** - User-friendly error messages if API fails
+- ✅ **Responsive Design** - Works on desktop and mobile devices
+- ✅ **Color-Coded Results** - Green for LOW RISK, Red for HIGH RISK
+- ✅ **Medical Recommendations** - Personalized health suggestions based on prediction
+
+### Troubleshooting
+
+**Frontend fails to start:**
+```bash
+# Clear node modules and reinstall
+cd frontend
+rm -r node_modules package-lock.json
+npm install
+npm start
+```
+
+**CORS errors in browser console:**
+- Ensure FastAPI is running on `http://127.0.0.1:8000`
+- Check frontend/package.json has `"proxy": "http://127.0.0.1:8000"`
+
+**Prediction fails with 503 error:**
+- Ensure you've run `python ml/train.py` to generate `model/model.pkl`
+- Check model file exists at `model/model.pkl`
+
+**API returns 422 (Unprocessable Entity):**
+- Verify all 8 input fields have valid values
+- Check values are within valid ranges (non-negative, realistic)
 
 ## API Documentation
 
@@ -482,23 +591,42 @@ docker run -p 8000:8000 \
 
 ### Docker Compose (Optional)
 
+A full-stack compose setup starts both frontend and backend together:
+- `api` runs the FastAPI backend
+- `frontend` builds and serves the React app via nginx
+- `/api` requests are proxied from the frontend to the backend
+
 Create a `docker-compose.yml`:
 ```yaml
 version: '3.8'
 services:
   api:
-    build: .
+    build:
+      context: .
     ports:
       - "8000:8000"
     volumes:
       - ./model:/app/model
       - ./data:/app/data
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
 ```
 
 Run with:
 ```bash
-docker-compose up
+docker-compose up --build
 ```
+
+Then browse:
+- frontend: `http://localhost:3000`
+- backend docs: `http://localhost:8000/docs`
 
 ## Project Workflow
 
