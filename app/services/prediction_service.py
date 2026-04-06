@@ -1,5 +1,5 @@
-from app.model.model_loader import load_model
-from app.utils.preprocess import transform_input
+from ..model.model_loader import load_model
+from ..utils.preprocess import transform_input
 
 _model = None
 

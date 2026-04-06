@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes.predict import router as predict_router
+from .routes.predict import router as predict_router
 
 app = FastAPI(
     title="Health Risk Prediction API",
